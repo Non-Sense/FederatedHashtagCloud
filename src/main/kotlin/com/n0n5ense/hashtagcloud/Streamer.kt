@@ -8,6 +8,10 @@ import com.sys1yagi.mastodon4j.api.Shutdownable
 import com.sys1yagi.mastodon4j.api.entity.Notification
 import com.sys1yagi.mastodon4j.api.entity.Status
 import com.sys1yagi.mastodon4j.api.exception.Mastodon4jRequestException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
@@ -39,7 +43,10 @@ class Streamer(
         logger.info("stream start")
         shutdownable = federatedPublic(client, handler) {
             shutdownable?.shutdown()
-            start()
+            CoroutineScope(Dispatchers.Default).launch {
+//                delay(60000)
+                start()
+            }
         }
     }
 }
@@ -75,7 +82,7 @@ private fun federatedPublic(client: MastodonClient, handler: Handler, onClose: (
                         )
                         handler.onStatus(status)
                     }
-                } catch(e: java.io.InterruptedIOException) {
+                } catch(e: Exception) {
                     break
                 }
             }

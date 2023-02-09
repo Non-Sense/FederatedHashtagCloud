@@ -7,6 +7,7 @@ import com.n0n5ense.hashtagcloud.database.datasource.HashTagDataSource
 import com.sys1yagi.mastodon4j.MastodonClient
 import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
+import java.time.Instant
 import kotlin.system.exitProcess
 
 
@@ -37,10 +38,12 @@ fun main(args: Array<String>) {
         if(input?.startsWith("exit") == true)
             break
         if(input?.startsWith("s") == true){
-            datasource.t(30).map { println(it) }
+            println("accept")
+            datasource.tc(30).map { println(it) }
         }
         if(input?.startsWith("d") == true){
-            datasource.t2(30).map { println(it) }
+            println("accept")
+            datasource.aggregateWithExclude(Instant.now().minusSeconds(600000), 30).map { println(it) }
         }
 
     }

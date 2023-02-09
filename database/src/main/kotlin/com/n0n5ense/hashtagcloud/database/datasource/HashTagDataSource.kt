@@ -15,6 +15,15 @@ class HashTagDataSource(
     database: HashTagDatabase
 ) {
 
+    companion object {
+        private val aggregateQuery = "SELECT ${HashTagTable.tagName.name}, COUNT(${HashTagTable.tagName.name}) AS name_count, MAX(time_max) AS time_max2 FROM " +
+                "(SELECT ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}, MAX(${HashTagTable.createdAt.name}) AS time_max " +
+                "FROM ${HashTagTable.tableName} GROUP BY ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}) AS t " +
+                "GROUP BY ${HashTagTable.tagName.name} " +
+                "HAVING NOT EXISTS(SELECT ${ExcludeTagTable.tagName.name} FROM ${ExcludeTagTable.tableName} WHERE ${ExcludeTagTable.tagName.name} = t.${HashTagTable.tagName.name}) " +
+                "ORDER BY name_count DESC, time_max2 DESC LIMIT ?"
+    }
+
     private val db = database.database
 
     fun add(data: TagData) {
@@ -37,39 +46,18 @@ class HashTagDataSource(
         }
     }
 
-    fun t(limit: Int): List<AggregatedTagData> {
+    fun tc(limit: Int): List<AggregatedTagData> {
         return transaction(db) {
-            val query =
-                "SELECT tag_name, COUNT(${HashTagTable.tagName.name}), MAX(max) FROM " +
-                        "(SELECT ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}, MAX(${HashTagTable.createdAt.name}) FROM ${HashTagTable.tableName} GROUP BY ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}) AS t " +
-                        "GROUP BY ${HashTagTable.tagName.name} ORDER BY count DESC LIMIT $limit"
-            this.exec(query) { rs ->
-                val res = arrayListOf<AggregatedTagData>()
-                while(rs.next()) {
-                    res += AggregatedTagData(rs.getString(1), rs.getLong(2), rs.getTimestamp(3).toInstant().toUtcString())
-                }
-                res
-            }?.toList() ?: listOf()
-        }
-    }
+            val statement = this.connection.prepareStatement(aggregateQuery, true).apply {
+                set(1, limit)
+            }
+            val rs = statement.executeQuery()
 
-    fun t2(limit: Int): List<AggregatedTagData> {
-        return transaction(db) {
-            HashTagTable
-                .slice(HashTagTable.tagName, HashTagTable.tagName.count(), HashTagTable.createdAt.max())
-                .selectAll()
-                .groupBy(HashTagTable.tagName)
-                .orderBy(
-                    (HashTagTable.tagName.count() to SortOrder.DESC),
-                    (HashTagTable.createdAt.max() to SortOrder.DESC)
-                )
-                .limit(limit)
-                .map {
-                    AggregatedTagData(
-                        it[HashTagTable.tagName], it[HashTagTable.tagName.count()],
-                        (it[HashTagTable.createdAt.max()] as Instant).toUtcString()
-                    )
-                }
+            val res = mutableListOf<AggregatedTagData>()
+            while(rs.next()) {
+                res += AggregatedTagData(rs.getString(1), rs.getLong(2), rs.getTimestamp(3).toInstant().toUtcString())
+            }
+            res
         }
     }
 
@@ -80,7 +68,6 @@ class HashTagDataSource(
                 .select {
                     (HashTagTable.createdAt greaterEq from)
                 }
-                .withDistinct()
                 .groupBy(HashTagTable.tagName)
                 .having { notExists(ExcludeTagTable.select { ExcludeTagTable.tagName eq HashTagTable.tagName }) }
                 .orderBy(
