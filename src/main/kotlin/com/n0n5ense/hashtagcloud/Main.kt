@@ -1,20 +1,13 @@
 package com.n0n5ense.hashtagcloud
 
 import com.google.gson.Gson
-import com.n0n5ense.hashtagcloud.apiserver.HashTagApiData
 import com.n0n5ense.hashtagcloud.apiserver.startServer
 import com.n0n5ense.hashtagcloud.database.HashTagDatabase
 import com.n0n5ense.hashtagcloud.database.datasource.HashTagDataSource
 import com.sys1yagi.mastodon4j.MastodonClient
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
-import java.time.Instant
 import kotlin.system.exitProcess
-import kotlin.time.Duration.Companion.minutes
 
 
 fun main(args: Array<String>) {
@@ -35,14 +28,7 @@ fun main(args: Array<String>) {
         datasource.addAll(it)
     }
 
-    val updateJob = CoroutineScope(Dispatchers.Default).launch {
-        while(true) {
-            HashTagApiData.setData(datasource.aggregateWithExclude(Instant.now().minusSeconds(86400), 100))
-            delay(5.minutes)
-        }
-    }
-
-    startServer(commandLineArgs.port)
+    startServer(commandLineArgs.port, database)
 
     streamer.start()
 
@@ -50,8 +36,14 @@ fun main(args: Array<String>) {
         val input = readLine()
         if(input?.startsWith("exit") == true)
             break
+        if(input?.startsWith("s") == true){
+            datasource.t(30).map { println(it) }
+        }
+        if(input?.startsWith("d") == true){
+            datasource.t2(30).map { println(it) }
+        }
+
     }
 
-    updateJob.cancel()
     exitProcess(0)
 }

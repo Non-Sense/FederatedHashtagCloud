@@ -1,6 +1,6 @@
 package com.n0n5ense.hashtagcloud.database.datasource
 
-import com.n0n5ense.hashtagcloud.common.TagData
+import com.n0n5ense.hashtagcloud.common.ExcludeTag
 import com.n0n5ense.hashtagcloud.database.ExcludeTagTable
 import com.n0n5ense.hashtagcloud.database.HashTagDatabase
 import com.n0n5ense.hashtagcloud.database.deleteWhere
@@ -21,10 +21,10 @@ class ExcludeTagDataSource(
         }
     }
 
-    fun getAll(): List<TagData> {
+    fun getAll(): List<ExcludeTag> {
         return transaction(db) {
             ExcludeTagTable.selectAll().map {
-                TagData(it[ExcludeTagTable.tagName], it[ExcludeTagTable.createdAt])
+                ExcludeTag(it[ExcludeTagTable.tagName])
             }
         }
     }

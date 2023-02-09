@@ -24,9 +24,11 @@ class Streamer(
         override fun onNotification(notification: Notification) {}
 
         override fun onStatus(status: Status) {
+//            println("${status.account?.id} ${status.account?.acct}  ${status.content}")
             if(status.tags.isNotEmpty()) {
                 val instant = kotlin.runCatching { Instant.parse(status.createdAt) }.getOrDefault(Instant.now())
-                onReceiveHashTag(status.tags.map { TagData(it.name, instant) })
+                val userId = status.account?.id ?: -1L
+                onReceiveHashTag(status.tags.map { TagData(it.name, userId, instant) })
             }
         }
     }

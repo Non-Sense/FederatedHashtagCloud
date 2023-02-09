@@ -4,5 +4,6 @@ import java.time.Instant
 
 data class TagData(
     val name: String,
+    val userId: Long,
     val createdAt: Instant
 )

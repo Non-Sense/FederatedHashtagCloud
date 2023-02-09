@@ -35,6 +35,7 @@ class HashTagDatabase private constructor(internal val database: Database){
 
 internal object HashTagTable : LongIdTable() {
     val tagName = text("tag_name")
+    val userId = long("user_id")
     val createdAt = timestamp("created_at")
 }
 

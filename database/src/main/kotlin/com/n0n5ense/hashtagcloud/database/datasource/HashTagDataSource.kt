@@ -21,6 +21,7 @@ class HashTagDataSource(
         transaction(db) {
             HashTagTable.insert {
                 it[tagName] = data.name
+                it[userId] = data.userId
                 it[createdAt] = data.createdAt
             }
         }
@@ -30,8 +31,45 @@ class HashTagDataSource(
         transaction(db) {
             HashTagTable.batchInsert(data) {
                 this[HashTagTable.tagName] = it.name
+                this[HashTagTable.userId] = it.userId
                 this[HashTagTable.createdAt] = it.createdAt
             }
+        }
+    }
+
+    fun t(limit: Int): List<AggregatedTagData> {
+        return transaction(db) {
+            val query =
+                "SELECT tag_name, COUNT(${HashTagTable.tagName.name}), MAX(max) FROM " +
+                        "(SELECT ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}, MAX(${HashTagTable.createdAt.name}) FROM ${HashTagTable.tableName} GROUP BY ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}) AS t " +
+                        "GROUP BY ${HashTagTable.tagName.name} ORDER BY count DESC LIMIT $limit"
+            this.exec(query) { rs ->
+                val res = arrayListOf<AggregatedTagData>()
+                while(rs.next()) {
+                    res += AggregatedTagData(rs.getString(1), rs.getLong(2), rs.getTimestamp(3).toInstant().toUtcString())
+                }
+                res
+            }?.toList() ?: listOf()
+        }
+    }
+
+    fun t2(limit: Int): List<AggregatedTagData> {
+        return transaction(db) {
+            HashTagTable
+                .slice(HashTagTable.tagName, HashTagTable.tagName.count(), HashTagTable.createdAt.max())
+                .selectAll()
+                .groupBy(HashTagTable.tagName)
+                .orderBy(
+                    (HashTagTable.tagName.count() to SortOrder.DESC),
+                    (HashTagTable.createdAt.max() to SortOrder.DESC)
+                )
+                .limit(limit)
+                .map {
+                    AggregatedTagData(
+                        it[HashTagTable.tagName], it[HashTagTable.tagName.count()],
+                        (it[HashTagTable.createdAt.max()] as Instant).toUtcString()
+                    )
+                }
         }
     }
 
@@ -42,13 +80,20 @@ class HashTagDataSource(
                 .select {
                     (HashTagTable.createdAt greaterEq from)
                 }
+                .withDistinct()
                 .groupBy(HashTagTable.tagName)
                 .having { notExists(ExcludeTagTable.select { ExcludeTagTable.tagName eq HashTagTable.tagName }) }
-                .orderBy((HashTagTable.tagName.count() to SortOrder.DESC), (HashTagTable.createdAt.max() to SortOrder.DESC))
+                .orderBy(
+                    (HashTagTable.tagName.count() to SortOrder.DESC),
+                    (HashTagTable.createdAt.max() to SortOrder.DESC)
+                )
                 .limit(limit)
-                .map { AggregatedTagData(it[HashTagTable.tagName], it[HashTagTable.tagName.count()],
-                    (it[HashTagTable.createdAt.max()] as Instant).toUtcString()
-                ) }
+                .map {
+                    AggregatedTagData(
+                        it[HashTagTable.tagName], it[HashTagTable.tagName.count()],
+                        (it[HashTagTable.createdAt.max()] as Instant).toUtcString()
+                    )
+                }
         }
     }
 
@@ -58,16 +103,23 @@ class HashTagDataSource(
                 .slice(HashTagTable.tagName, HashTagTable.tagName.count(), HashTagTable.createdAt.max())
                 .selectAll()
                 .groupBy(HashTagTable.tagName)
-                .orderBy((HashTagTable.tagName.count() to SortOrder.DESC), (HashTagTable.createdAt.max() to SortOrder.DESC))
-                .map { AggregatedTagData(it[HashTagTable.tagName], it[HashTagTable.tagName.count()],
-                    (it[HashTagTable.createdAt.max()] as Instant).toUtcString()
-                ) }
+                .orderBy(
+                    (HashTagTable.tagName.count() to SortOrder.DESC),
+                    (HashTagTable.createdAt.max() to SortOrder.DESC)
+                )
+                .map {
+                    AggregatedTagData(
+                        it[HashTagTable.tagName], it[HashTagTable.tagName.count()],
+                        (it[HashTagTable.createdAt.max()] as Instant).toUtcString()
+                    )
+                }
         }
     }
 
     fun getAll(): List<TagData> {
         return transaction(db) {
-            HashTagTable.selectAll().map { TagData(it[HashTagTable.tagName], it[HashTagTable.createdAt]) }
+            HashTagTable.selectAll()
+                .map { TagData(it[HashTagTable.tagName], it[HashTagTable.userId], it[HashTagTable.createdAt]) }
         }
     }
 
