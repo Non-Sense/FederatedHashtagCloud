@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
 
 class Streamer(
     private val client: MastodonClient,
@@ -28,7 +29,6 @@ class Streamer(
         override fun onNotification(notification: Notification) {}
 
         override fun onStatus(status: Status) {
-//            println("${status.account?.id} ${status.account?.acct}  ${status.content}")
             if(status.tags.isNotEmpty()) {
                 val instant = kotlin.runCatching { Instant.parse(status.createdAt) }.getOrDefault(Instant.now())
                 val userId = status.account?.id ?: -1L
@@ -44,7 +44,7 @@ class Streamer(
         shutdownable = federatedPublic(client, handler) {
             shutdownable?.shutdown()
             CoroutineScope(Dispatchers.Default).launch {
-//                delay(60000)
+                delay(10.seconds)
                 start()
             }
         }
