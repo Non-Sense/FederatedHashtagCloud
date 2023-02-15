@@ -51,9 +51,9 @@ class Streamer(
     }
 }
 
-private fun federatedPublic(client: MastodonClient, handler: Handler, onClose: () -> Unit): Shutdownable {
-    val response = client.get("streaming/public")
-    if(response.isSuccessful) {
+private fun federatedPublic(client: MastodonClient, handler: Handler, onClose: () -> Unit): Shutdownable? {
+    val response = runCatching { client.get("streaming/public") }.getOrNull()
+    if(response?.isSuccessful == true) {
         val reader = response.body().byteStream().bufferedReader()
         val dispatcher = Dispatcher()
         dispatcher.invokeLater {
@@ -91,6 +91,7 @@ private fun federatedPublic(client: MastodonClient, handler: Handler, onClose: (
         }
         return Shutdownable(dispatcher)
     } else {
-        throw Mastodon4jRequestException(response)
+        onClose()
+        return null
     }
 }

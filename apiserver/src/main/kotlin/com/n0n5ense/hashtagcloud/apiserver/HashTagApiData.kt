@@ -3,10 +3,18 @@ package com.n0n5ense.hashtagcloud.apiserver
 import com.n0n5ense.hashtagcloud.common.AggregatedTagData
 import com.n0n5ense.hashtagcloud.database.datasource.HashTagDataSource
 import kotlinx.coroutines.*
+import kotlinx.serialization.Serializable
 import org.koin.java.KoinJavaComponent.inject
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import kotlin.time.Duration.Companion.minutes
+
+@Serializable
+data class HashTags(
+    val maxCount: Int,
+    val minCount: Int,
+    val tags: List<AggregatedTagData>
+)
 
 internal class HashTagApiData {
     companion object {
