@@ -11,6 +11,8 @@ import org.koin.ktor.ext.inject
 internal fun Route.v1Api() {
     route("/tags") {
         get {
+            // FIXME: ワイルドカードやめたほうがいい
+            call.response.headers.append(HttpHeaders.AccessControlAllowOrigin, "*")
             call.respond(HttpStatusCode.OK, HashTagApiData.data)
         }
         route("/exclude") {

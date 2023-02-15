@@ -30,7 +30,8 @@ internal class HashTagApiData {
         suspend fun update() {
             kotlin.runCatching {
                 withContext(Dispatchers.IO) {
-                    datasource.aggregateWithExclude(Instant.now().minusSeconds(86400), 100)
+//                    datasource.aggregateWithExclude(Instant.now().minusSeconds(86400), 100)
+                    datasource.tc(150)
                 }
             }.onFailure {
                 logger.error(it.stackTraceToString())
