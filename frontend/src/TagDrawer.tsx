@@ -18,6 +18,7 @@ import {useGetElementProperty} from "./useGetElementProperty";
 import useAppBarHeight from "./useAppBarHeight";
 import * as d3 from "d3";
 import {D3ZoomEvent, zoom} from "d3";
+import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 
 const drawerWidth = 240;
 
@@ -49,6 +50,7 @@ export default function TagDrawer(props: Props) {
         let ignore = false;
         if (ignore)
             return;
+
         console.log("fetch")
         GetTag("http://192.168.100.4:8080", data => {
             setTags(data)
@@ -56,28 +58,6 @@ export default function TagDrawer(props: Props) {
         return () => {
             ignore = true;
         }
-    }, [])
-
-
-    const svg = d3.select<SVGSVGElement, unknown>(".wcsvg");
-    const zoomed = useCallback((event: D3ZoomEvent<SVGElement, unknown>) => {
-        console.log(event.transform);
-        svg.attr("transform", `translate(${event.transform.x}, ${event.transform.y})`)
-    },[()=>{}]);
-
-    useEffect(() => {
-        // console.log(svg);
-        // const zoom = d3.zoom<SVGSVGElement, unknown>().on("zoom", ((event: any) => {
-        //
-        // }))
-        // // d3.select(svgRef.current).call(zoom)
-        // svg.call(d3.zoom().on("zoom", ()=>{}))
-        // svg.call(d3.zoom().on("zoom",(transform: any)=>{console.log(transform)}))
-        const _zoom = zoom<SVGSVGElement, unknown>()
-            // .scaleExtent([0.75, 8])
-            .on("zoom", zoomed);
-        svg.call(_zoom);
-        console.log(svg)
     }, [])
 
     const drawer = (
@@ -159,27 +139,29 @@ export default function TagDrawer(props: Props) {
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    p: 3,
+                    // p: 3,
                     width: {sm: `calc(100% - ${drawerWidth}px)`},
-                    height: {xs: `calc(100vh - ${appBarHeight}px)`}
+                    height: {xs: `100vh`},
+                    overflow: {xs: "hidden"}
+                    // height: {xs: `calc(100vh - ${appBarHeight}px)`}
                 }}
+                bgcolor={"#0f0"}
             >
                 <Toolbar/>
-                {/*<WordCloud*/}
-                {/*    data={tags.map(data => ({text: data.name, value: data.count}))}*/}
-                {/*    fontSize={d => Math.pow(d.value, 0.5) * 10}*/}
-                {/*    // fontSize={60}*/}
-                {/*    // rotate={d => (Math.random() > 0.5) ? 0 : 90}*/}
-                {/*    rotate={0}*/}
-                {/*    width={getElementProperty("width")}*/}
-                {/*    height={getElementProperty("height")*2}*/}
-                {/*    // width={`calc(100vh)`}*/}
-                {/*    // spiral={"rectangular"}*/}
-                {/*    font={"sans-serif"}*/}
-                {/*/>*/}
-                <svg className="wcsvg" ref={svgRef} width={`calc(100% - ${drawerWidth}px)`} height={`calc(95vh - ${appBarHeight}px)`}>
-                    <image href={"/wd.svg"}/>
-                </svg>
+                <Box sx={{width: {sm: `100%`}, height: {xs: `calc(100vh - ${appBarHeight}px)`}, p: 0, m: 0}}
+                     bgcolor={"#000"}>
+                    <TransformWrapper initialScale={1} limitToBounds={false} minScale={0.3} disablePadding={true} initialPositionX={0} initialPositionY={0}
+                                      minPositionX={-200} minPositionY={-200} maxPositionX={200} maxPositionY={200}>
+                        <TransformComponent>
+                            {/*<svg className="wcsvg" ref={svgRef} width={`100wh`} height={`calc(100vh - ${appBarHeight}px - 7px)`}>*/}
+                            <svg ref={svgRef} width={`calc(max(1400px,100vw))`} height={`calc(max(1400px,100vh))`}>
+                                <image href={"/wd.svg"}/>
+                            </svg>
+                            {/*<img src={"/wd.svg"}/>*/}
+                        </TransformComponent>
+                    </TransformWrapper>
+                </Box>
+
             </Box>
         </Box>
     );
