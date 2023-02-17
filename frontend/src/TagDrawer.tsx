@@ -35,9 +35,6 @@ export default function TagDrawer(props: Props) {
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const [tags, setTags] = React.useState<Array<TagData>>([]);
 
-    const targetRef = useRef(null);
-    const {getElementProperty} = useGetElementProperty<HTMLDivElement>(targetRef);
-
     const svgRef = useRef<SVGSVGElement>(null);
 
     const appBarHeight = useAppBarHeight()
@@ -55,6 +52,7 @@ export default function TagDrawer(props: Props) {
         GetTag("http://192.168.100.4:8080", data => {
             setTags(data)
         })
+
         return () => {
             ignore = true;
         }
@@ -135,29 +133,24 @@ export default function TagDrawer(props: Props) {
                 </Drawer>
             </Box>
             <Box
-                ref={targetRef}
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    // p: 3,
                     width: {sm: `calc(100% - ${drawerWidth}px)`},
                     height: {xs: `100vh`},
                     overflow: {xs: "hidden"}
-                    // height: {xs: `calc(100vh - ${appBarHeight}px)`}
                 }}
                 bgcolor={"#0f0"}
             >
                 <Toolbar/>
                 <Box sx={{width: {sm: `100%`}, height: {xs: `calc(100vh - ${appBarHeight}px)`}, p: 0, m: 0}}
                      bgcolor={"#000"}>
-                    <TransformWrapper initialScale={1} limitToBounds={false} minScale={0.3} disablePadding={true} initialPositionX={0} initialPositionY={0}
-                                      minPositionX={-200} minPositionY={-200} maxPositionX={200} maxPositionY={200}>
-                        <TransformComponent>
-                            {/*<svg className="wcsvg" ref={svgRef} width={`100wh`} height={`calc(100vh - ${appBarHeight}px - 7px)`}>*/}
-                            <svg ref={svgRef} width={`calc(max(1400px,100vw))`} height={`calc(max(1400px,100vh))`}>
+                    <TransformWrapper initialScale={1.2} limitToBounds={true} minScale={0.3} disablePadding={true}
+                                      centerOnInit={true}>
+                        <TransformComponent wrapperStyle={{height: `calc(100vh - ${appBarHeight}px)`, width: `100%`}}>
+                            <svg ref={svgRef} width={1400} height={1400}>
                                 <image href={"/wd.svg"}/>
                             </svg>
-                            {/*<img src={"/wd.svg"}/>*/}
                         </TransformComponent>
                     </TransformWrapper>
                 </Box>
