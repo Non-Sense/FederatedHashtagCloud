@@ -53,6 +53,13 @@ export default function TagDrawer(props: Props) {
             setTags(data)
         })
 
+        if(svgRef.current != null) {
+            const img = svgRef.current.getElementsByTagName("image");
+            if(img != null) {
+                console.log(img.item(0)?.childElementCount);
+            }
+        }
+
         return () => {
             ignore = true;
         }
@@ -148,7 +155,7 @@ export default function TagDrawer(props: Props) {
                     <TransformWrapper initialScale={1.2} limitToBounds={true} minScale={0.3} disablePadding={true}
                                       centerOnInit={true}>
                         <TransformComponent wrapperStyle={{height: `calc(100vh - ${appBarHeight}px)`, width: `100%`}}>
-                            <svg ref={svgRef} width={1400} height={1400}>
+                            <svg ref={svgRef} width={1400} height={1400} className={"wcsvg"}>
                                 <image href={"/wd.svg"}/>
                             </svg>
                         </TransformComponent>

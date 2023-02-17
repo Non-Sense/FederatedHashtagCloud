@@ -29,7 +29,7 @@ fun main(args: Array<String>) {
         datasource.addAll(it)
     }
 
-    startServer(commandLineArgs.port, database)
+    startServer(commandLineArgs.port, database, commandLineArgs.instanceDomain)
 
     streamer.start()
 
@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
             break
         if(input?.startsWith("s") == true){
             println("accept")
-            datasource.tc(30).map { println(it) }
+            datasource.tc(Instant.now().minusSeconds(600000),30).map { println(it) }
         }
         if(input?.startsWith("d") == true){
             println("accept")

@@ -9,13 +9,6 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import kotlin.time.Duration.Companion.minutes
 
-@Serializable
-data class HashTags(
-    val maxCount: Int,
-    val minCount: Int,
-    val tags: List<AggregatedTagData>
-)
-
 internal class HashTagApiData {
     companion object {
         private val logger = LoggerFactory.getLogger(HashTagApiData::class.java)
@@ -39,7 +32,7 @@ internal class HashTagApiData {
             kotlin.runCatching {
                 withContext(Dispatchers.IO) {
 //                    datasource.aggregateWithExclude(Instant.now().minusSeconds(86400), 100)
-                    datasource.tc(150)
+                    datasource.tc(Instant.now().minusSeconds(86400),150)
                 }
             }.onFailure {
                 logger.error(it.stackTraceToString())

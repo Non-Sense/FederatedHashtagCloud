@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
 
-fun startServer(port: Int, database: HashTagDatabase) {
+fun startServer(port: Int, database: HashTagDatabase, instanceDomain: String) {
     embeddedServer(
         Netty,
         port = port
@@ -33,7 +33,7 @@ fun startServer(port: Int, database: HashTagDatabase) {
             )
         }
         install(Routing)
-        configureRouting()
+        configureRouting(instanceDomain)
 
     }.start(wait = false)
     HashTagApiData.startJob()

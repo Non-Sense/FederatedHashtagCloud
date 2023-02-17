@@ -18,10 +18,12 @@ class HashTagDataSource(
     companion object {
         private val aggregateQuery = "SELECT ${HashTagTable.tagName.name}, COUNT(${HashTagTable.tagName.name}) AS name_count, MAX(time_max) AS time_max2 FROM " +
                 "(SELECT ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}, MAX(${HashTagTable.createdAt.name}) AS time_max " +
-                "FROM ${HashTagTable.tableName} GROUP BY ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}) AS t " +
+                "FROM ${HashTagTable.tableName} WHERE ${HashTagTable.createdAt.name} > cast( ? as timestamp ) GROUP BY ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}) AS t " +
                 "GROUP BY ${HashTagTable.tagName.name} " +
                 "HAVING NOT EXISTS(SELECT ${ExcludeTagTable.tagName.name} FROM ${ExcludeTagTable.tableName} WHERE ${ExcludeTagTable.tagName.name} = t.${HashTagTable.tagName.name}) " +
                 "ORDER BY name_count DESC, time_max2 DESC LIMIT ?"
+
+        private val sqlDatetimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
     }
 
     private val db = database.database
@@ -46,10 +48,11 @@ class HashTagDataSource(
         }
     }
 
-    fun tc(limit: Int): List<AggregatedTagData> {
+    fun tc(from: Instant, limit: Int): List<AggregatedTagData> {
         return transaction(db) {
             val statement = this.connection.prepareStatement(aggregateQuery, true).apply {
-                set(1, limit)
+                set(1, from.toSqlString())
+                set(2, limit)
             }
             val rs = statement.executeQuery()
 
@@ -112,6 +115,10 @@ class HashTagDataSource(
 
     private fun Instant.toUtcString(): String {
         return this.atZone(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_INSTANT)
+    }
+
+    private fun Instant.toSqlString(): String {
+        return this.atZone(ZoneId.systemDefault()).format(sqlDatetimeFormatter)
     }
 }
 
