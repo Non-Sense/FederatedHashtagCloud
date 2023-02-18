@@ -2,16 +2,10 @@ package com.n0n5ense.hashtagcloud
 
 import com.n0n5ense.hashtagcloud.common.TagData
 import com.sys1yagi.mastodon4j.MastodonClient
-import com.sys1yagi.mastodon4j.api.Dispatcher
 import com.sys1yagi.mastodon4j.api.Handler
-import com.sys1yagi.mastodon4j.api.Shutdownable
 import com.sys1yagi.mastodon4j.api.entity.Notification
 import com.sys1yagi.mastodon4j.api.entity.Status
-import com.sys1yagi.mastodon4j.api.exception.Mastodon4jRequestException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
@@ -20,6 +14,10 @@ class Streamer(
     private val client: MastodonClient,
     private val onReceiveHashTag: (List<TagData>) -> Unit
 ) {
+
+    companion object {
+        const val STREAM_TIMEOUT = 16000
+    }
 
     private val logger = LoggerFactory.getLogger(Streamer::class.java)
 
@@ -37,61 +35,76 @@ class Streamer(
         }
     }
 
-    private var shutdownable: Shutdownable? = null
-
     fun start() {
-        logger.info("stream start")
-        shutdownable = federatedPublic(client, handler) {
-            shutdownable?.shutdown()
-            CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.Default).launch {
+            while(true) {
+                logger.info("stream start")
+                federatedPublic(client, handler)
+                logger.info("stream end")
+
                 delay(10.seconds)
-                start()
             }
         }
-    }
-}
 
-private fun federatedPublic(client: MastodonClient, handler: Handler, onClose: () -> Unit): Shutdownable? {
-    val response = runCatching { client.get("streaming/public") }.getOrNull()
-    if(response?.isSuccessful == true) {
+    }
+
+    private suspend fun federatedPublic(client: MastodonClient, handler: Handler) {
+        val response = runCatching { client.get("streaming/public") }.getOrNull()
+        if(response?.isSuccessful != true)
+            return
+
         val reader = response.body().byteStream().bufferedReader()
-        val dispatcher = Dispatcher()
-        dispatcher.invokeLater {
-            while(true) {
-                try {
-                    val line = reader.readLine()
-                    if(line == null || line.isEmpty()) {
-                        continue
-                    }
-                    val type = line.split(":")[0].trim()
-                    if(type != "event") {
-                        continue
-                    }
-                    val event = line.split(":")[1].trim()
-                    val payload = reader.readLine()
-                    val payloadType = payload.split(":")[0].trim()
-                    if(payloadType != "data") {
-                        continue
-                    }
-                    if(event == "update") {
-                        val start = payload.indexOf(":") + 1
-                        val json = payload.substring(start).trim()
-                        val status = client.getSerializer().fromJson(
-                            json,
-                            Status::class.java
-                        )
-                        handler.onStatus(status)
-                    }
-                } catch(e: Exception) {
+
+        suspend fun readLineWithTimeout(): String? {
+            return withTimeoutOrNull(3.seconds) {
+                runCatching { reader.readLine() }
+            }?.getOrThrow()
+        }
+
+        var lastThump = System.currentTimeMillis()
+        while(true) {
+            try {
+                val line = readLineWithTimeout()
+                val now = System.currentTimeMillis()
+                if((now - lastThump) > STREAM_TIMEOUT) {
+                    logger.info("stream timeout ${now - lastThump}ms")
                     break
                 }
+                if(line == null || line.isEmpty()) {
+                    continue
+                }
+                if(line.startsWith(":thump")) {
+                    logger.info("thump ${now - lastThump}ms")
+                    lastThump = now
+                    continue
+                }
+                val type = line.split(":")[0].trim()
+                if(type != "event") {
+                    continue
+                }
+                val event = line.split(":")[1].trim()
+                val payload = readLineWithTimeout() ?: continue
+                val payloadType = payload.split(":")[0].trim()
+                if(payloadType != "data") {
+                    continue
+                }
+                if(event == "update") {
+                    val start = payload.indexOf(":") + 1
+                    val json = payload.substring(start).trim()
+                    val status = client.getSerializer().fromJson(
+                        json,
+                        Status::class.java
+                    )
+                    handler.onStatus(status)
+                }
+            } catch(e: Exception) {
+                logger.error(e.stackTraceToString())
+                break
             }
-            reader.close()
-            onClose()
         }
-        return Shutdownable(dispatcher)
-    } else {
-        onClose()
-        return null
+        runCatching {
+            reader.close()
+        }
     }
 }
+
