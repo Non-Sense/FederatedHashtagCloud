@@ -1,5 +1,6 @@
 package com.n0n5ense.hashtagcloud.apiserver
 
+import com.n0n5ense.hashtagcloud.common.AggregatedTagData
 import com.n0n5ense.hashtagcloud.database.HashTagDatabase
 import com.n0n5ense.hashtagcloud.database.datasource.ExcludeTagDataSource
 import com.n0n5ense.hashtagcloud.database.datasource.HashTagDataSource
@@ -13,7 +14,16 @@ import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
 
-fun startServer(port: Int, database: HashTagDatabase, instanceDomain: String) {
+class CallHandler {
+    fun updateTagData(data: List<AggregatedTagData>) {
+        HashTagApiData.update(data)
+    }
+    fun onGenerate(filePath: String) {
+        HashTagApiData.updateGenerated(filePath)
+    }
+}
+
+fun startServer(port: Int, database: HashTagDatabase, instanceDomain: String): CallHandler {
     embeddedServer(
         Netty,
         port = port
@@ -36,5 +46,5 @@ fun startServer(port: Int, database: HashTagDatabase, instanceDomain: String) {
         configureRouting(instanceDomain)
 
     }.start(wait = false)
-    HashTagApiData.startJob()
+    return CallHandler()
 }

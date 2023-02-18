@@ -20,9 +20,18 @@ internal fun Route.v1Api(instanceDomain: String) {
             excludeApi()
         }
     }
+
+    route("/generated") {
+        get {
+            // FIXME: ワイルドカードやめたほうがいい
+            call.response.headers.append(HttpHeaders.AccessControlAllowOrigin, "*")
+            call.response.headers.append(HttpHeaders.ContentType, "application/json")
+            call.respond(HttpStatusCode.OK, HashTagApiData.generatedData)
+        }
+    }
 }
 
-internal fun Route.excludeApi() {
+private fun Route.excludeApi() {
     val datasource: ExcludeTagDataSource by inject()
 
     get {

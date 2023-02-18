@@ -1,5 +1,6 @@
 package com.n0n5ense.hashtagcloud
 
+import com.charleskorn.kaml.Yaml
 import com.google.gson.Gson
 import com.n0n5ense.hashtagcloud.apiserver.startServer
 import com.n0n5ense.hashtagcloud.database.HashTagDatabase
@@ -8,18 +9,26 @@ import com.sys1yagi.mastodon4j.MastodonClient
 import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
 import java.time.Instant
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import kotlin.io.path.Path
 import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
+
+    val service = Executors.newSingleThreadScheduledExecutor()
+
     val logger = LoggerFactory.getLogger("com.n0n5ense.hashtagcloud.MainKt")
     val commandLineArgs = CommandLineArgs.parse(args)
 
-    val client = MastodonClient.Builder(commandLineArgs.instanceDomain, OkHttpClient.Builder(), Gson())
+    val config = Yaml.default.decodeFromStream(Config.serializer(), Path(commandLineArgs.configFile).toFile().inputStream())
+
+    val client = MastodonClient.Builder(config.targetHostName, OkHttpClient.Builder(), Gson())
         .useStreamingApi()
         .build()
 
-    val database = HashTagDatabase.connect(commandLineArgs.postgresUri, "postgres", "postgrespw")
+    val database = HashTagDatabase.connect(config.postgresUri, "postgres", "postgrespw")
     val datasource = HashTagDataSource(database)
     database.init()
 
@@ -29,7 +38,23 @@ fun main(args: Array<String>) {
         datasource.addAll(it)
     }
 
-    startServer(commandLineArgs.port, database, commandLineArgs.instanceDomain)
+    val handler = startServer(config.apiServerPort, database, config.targetHostName)
+
+    val wordCloudGenerator = WordCloudGenerator(config)
+
+
+    service.scheduleAtFixedRate({
+        runCatching {
+            datasource.tc(Instant.now().minusSeconds(86400),150)
+        }.onFailure {
+            logger.error(it.stackTraceToString())
+        }.onSuccess {
+            handler.updateTagData(it)
+        }
+        logger.info("data updated")
+        if(wordCloudGenerator.generate())
+            handler.onGenerate(config.generatedJsonFile)
+    }, 0, config.generateIntervalSec, TimeUnit.SECONDS)
 
     streamer.start()
 

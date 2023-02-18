@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class HashTags(
-    @SerialName("host_name")
+    @SerialName("hostname")
     val hostName: String,
     val tags: List<AggregatedTagData>
 )
