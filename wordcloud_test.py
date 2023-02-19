@@ -29,14 +29,15 @@ def color_func(word, font_size, position, orientation, random_state=None, **kwar
     return mcolors.rgb2hex(cmap(i))
 
 
-def make_wordcloud_svg(dat, height, width):
+def make_wordcloud_svg(dat, height, width, font):
     wc = WordCloud(
+        font_path=font,
         width=width,
         background_color="rgba(255, 255, 255, 0)",
         mode="RGBA",
         color_func=color_func,
         height=height).generate_from_frequencies(dat)
-    return wc.to_svg().splitlines()
+    return wc.to_svg()
 
 
 def svg_string_to_json(svg, dat):
@@ -60,18 +61,20 @@ def svg_string_to_json(svg, dat):
                 "t": g[6]  # text
             }
             l.append(t)
-    return l
+    return sorted(l, key=lambda x: x["c"], reverse=True)
 
 
-def main(url, output):
+def main(font, url, output):
     start = datetime.datetime.now(datetime.timezone.utc).isoformat()
     hostname, dat = get_tag_data(url)
     height = 1500
     width = 1500
-    svg = make_wordcloud_svg(dat, height, width)
-    svg_json = svg_string_to_json(svg, dat)
+    svg = make_wordcloud_svg(dat, height, width, font)
+    
+    svg_json = svg_string_to_json(svg.splitlines(), dat)
     js = {
         "time": start,
+        "hostname": hostname,
         "width": width,
         "height": height,
         "data": svg_json
@@ -83,5 +86,5 @@ def main(url, output):
 
 if __name__ == '__main__':
     args = sys.argv
-    main(args[1], args[2])
+    main(args[1], args[2], args[3])
     exit(0)

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {useCallback, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -8,32 +8,74 @@ import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
-import ListItemText from '@mui/material/ListItemText';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import TagData from "./vo/TagData";
-import {GetTag} from "./api/GetTag";
-import {useGetElementProperty} from "./useGetElementProperty";
 import useAppBarHeight from "./useAppBarHeight";
 import * as d3 from "d3";
-import {D3ZoomEvent, zoom} from "d3";
 import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
+import {GetWordCloud} from "./api/GetWordCloud";
+import GeneratedWordCloudApiResponse from "./vo/GeneratedWordCloudApiResponse";
+import {Container, Dialog, Divider} from "@mui/material";
+import {HelpOutline} from "@mui/icons-material";
+
+require("./tagdrawer.css")
 
 const drawerWidth = 240;
+const svgPadding = 200;
 
 interface Props {
-    /**
-     * Injected by the documentation to work in an iframe.
-     * You won't need it on your project.
-     */
     window?: () => Window;
+}
+
+class SvgSize {
+    height: number;
+    width: number;
+
+    constructor(height: number, width: number) {
+        this.height = height;
+        this.width = width;
+    }
+}
+
+let isDragging = false;
+let draggingResetId: number | null = null;
+
+function openTagPage(hostName: string, name: string) {
+    if (isDragging)
+        return;
+    window.open("https://" + hostName + "/tags/" + name);
+}
+
+function drawSvg(data: GeneratedWordCloudApiResponse, svg: SVGSVGElement) {
+    const sel = d3.select(svg);
+
+    data.data.forEach(elm => {
+        sel
+            .append("text")
+            .attr("transform", `translate(${elm.x + svgPadding},${elm.y + svgPadding}) rotate(${elm.e})`)
+            .attr("font-size", elm.s)
+            .attr("style", `fill:#${elm.l}`)
+            .text(elm.t)
+            .on("click", () => {
+                openTagPage(data.hostname, elm.t);
+            })
+    })
+
+}
+
+function getFormattedDate(date: Date): string {
+    return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} 
+    ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
 export default function TagDrawer(props: Props) {
     const {window} = props;
     const [mobileOpen, setMobileOpen] = React.useState(false);
-    const [tags, setTags] = React.useState<Array<TagData>>([]);
+    const [tags, setTags] = React.useState<GeneratedWordCloudApiResponse>(new GeneratedWordCloudApiResponse("", "", 1500, 1500, []));
+    const [svgSize, setSvgSize] = React.useState<SvgSize>(new SvgSize(1500, 1500))
+    const [updateTime, setUpdateTime] = React.useState("")
+    const [helpOpen, setHelpOpen] = React.useState(false);
 
     const svgRef = useRef<SVGSVGElement>(null);
 
@@ -48,17 +90,15 @@ export default function TagDrawer(props: Props) {
         if (ignore)
             return;
 
-        console.log("fetch")
-        GetTag("http://192.168.100.4:8080", data => {
-            setTags(data)
-        })
-
-        if(svgRef.current != null) {
-            const img = svgRef.current.getElementsByTagName("image");
-            if(img != null) {
-                console.log(img.item(0)?.childElementCount);
+        GetWordCloud("http://192.168.100.4:8080", data => {
+            setSvgSize(new SvgSize(data.height, data.width));
+            setTags(data);
+            const time = new Date(Date.parse(data.time));
+            setUpdateTime(getFormattedDate(time))
+            if (svgRef.current != null) {
+                drawSvg(data, svgRef.current);
             }
-        }
+        })
 
         return () => {
             ignore = true;
@@ -67,13 +107,22 @@ export default function TagDrawer(props: Props) {
 
     const drawer = (
         <div>
-            {/*<Toolbar/>*/}
-            {/*<Divider/>*/}
+            <Toolbar>
+                updated at {updateTime}
+            </Toolbar>
+            <Divider/>
             <List>
-                {tags.map(data => (
-                    <ListItem key={data.name} disablePadding>
-                        <ListItemButton>
-                            <ListItemText primary={data.name}/>
+                {tags.data.map(data => (
+                    <ListItem disablePadding>
+                        <ListItemButton onClick={() => openTagPage(tags.hostname, data.t)}>
+                            <Box>
+                                <Typography variant={"h6"}>
+                                    {data.t}
+                                </Typography>
+                                <Box sx={{fontSize: {xs: "0.7rem"}, color: {xs: "text.disabled"}}}>
+                                    by {data.c} people
+                                </Box>
+                            </Box>
                         </ListItemButton>
                     </ListItem>
                 ))}
@@ -86,6 +135,20 @@ export default function TagDrawer(props: Props) {
     return (
         <Box sx={{display: 'flex'}}>
             <CssBaseline/>
+            <Dialog open={helpOpen} onClose={() => setHelpOpen(false)}>
+                <Box padding={"1rem"}>
+                    <Container>
+                        <Typography variant="h5" component="div" paddingBottom={"0.5em"}>
+                            Otadon Federated Hashtag Cloud
+                        </Typography>
+                        <Typography variant="body1" component="div">
+                            連合タイムラインで言及されたハッシュタグをワードクラウドで表示します。<br/>
+                            集計は5分毎に行われ、直近24時間に対象のハッシュタグを言及したアカウント数がカウントされます。<br/>
+                            ハッシュタグをクリックすると投稿を確認できます。
+                        </Typography>
+                    </Container>
+                </Box>
+            </Dialog>
             <AppBar
                 position="fixed"
                 sx={{
@@ -104,8 +167,12 @@ export default function TagDrawer(props: Props) {
                         <MenuIcon/>
                     </IconButton>
                     <Typography variant="h6" noWrap component="div">
-                        Responsive drawer
+                        Otadon Federated Hashtag Cloud(TODO: Logo)
                     </Typography>
+                    <Box sx={{flexGrow: 1}}/>
+                    <IconButton onClick={() => setHelpOpen(true)} aria-label={"open help"}>
+                        <HelpOutline/>
+                    </IconButton>
                 </Toolbar>
             </AppBar>
             <Box
@@ -147,16 +214,32 @@ export default function TagDrawer(props: Props) {
                     height: {xs: `100vh`},
                     overflow: {xs: "hidden"}
                 }}
-                bgcolor={"#0f0"}
             >
                 <Toolbar/>
-                <Box sx={{width: {sm: `100%`}, height: {xs: `calc(100vh - ${appBarHeight}px)`}, p: 0, m: 0}}
-                     bgcolor={"#000"}>
-                    <TransformWrapper initialScale={1.2} limitToBounds={true} minScale={0.3} disablePadding={true}
-                                      centerOnInit={true}>
+                <Box sx={{width: {sm: `100%`}, height: {xs: `calc(100vh - ${appBarHeight}px)`}, p: 0, m: 0}}>
+                    <TransformWrapper initialScale={0.6} limitToBounds={true} minScale={0.2} disablePadding={false}
+                                      centerOnInit={true} onPanningStop={(_, event) => {
+                        if (event instanceof MouseEvent) {
+                            if (window) {
+                                draggingResetId = window().setTimeout(() => {
+                                    console.log("reset");
+                                    isDragging = false;
+                                    draggingResetId = null;
+                                }, 100);
+                            } else {
+                                isDragging = false;
+                            }
+                        }
+                    }} onPanning={(_, event) => {
+                        if (event instanceof MouseEvent) {
+                            if (draggingResetId !== null)
+                                window?.().clearTimeout(draggingResetId);
+                            isDragging = true;
+                        }
+                    }}>
                         <TransformComponent wrapperStyle={{height: `calc(100vh - ${appBarHeight}px)`, width: `100%`}}>
-                            <svg ref={svgRef} width={1400} height={1400} className={"wcsvg"}>
-                                <image href={"/wd.svg"}/>
+                            <svg ref={svgRef} width={svgSize.width + svgPadding * 2}
+                                 height={svgSize.height + svgPadding * 2} className={"wordcloudsvg"}>
                             </svg>
                         </TransformComponent>
                     </TransformWrapper>

@@ -21,5 +21,8 @@ export default function useAppBarHeight(): number {
     } else {
         currentToolbarMinHeight = toolbar;
     }
-    return (currentToolbarMinHeight as MinHeight).minHeight;
+    let tmp = (currentToolbarMinHeight as MinHeight)
+    if(tmp === undefined)
+        return 0;
+    return tmp.minHeight;
 }
