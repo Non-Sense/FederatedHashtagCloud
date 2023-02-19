@@ -2,13 +2,11 @@ package com.n0n5ense.hashtagcloud.apiserver
 
 import com.n0n5ense.hashtagcloud.common.AggregatedTagData
 import com.n0n5ense.hashtagcloud.database.datasource.HashTagDataSource
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
 import org.koin.java.KoinJavaComponent.inject
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.charset.Charset
-import java.time.Instant
-import kotlin.time.Duration.Companion.minutes
 
 internal class HashTagApiData {
     companion object {
@@ -30,20 +28,6 @@ internal class HashTagApiData {
 
         fun update(data: List<AggregatedTagData>) {
             this.data = data
-        }
-
-        suspend fun update() {
-            kotlin.runCatching {
-                withContext(Dispatchers.IO) {
-//                    datasource.aggregateWithExclude(Instant.now().minusSeconds(86400), 100)
-                    datasource.tc(Instant.now().minusSeconds(86400),150)
-                }
-            }.onFailure {
-                logger.error(it.stackTraceToString())
-            }.onSuccess {
-                data = it
-            }
-            logger.info("data updated")
         }
 
         fun stopJob() {

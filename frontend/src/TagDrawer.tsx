@@ -17,7 +17,7 @@ import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 import {GetWordCloud} from "./api/GetWordCloud";
 import GeneratedWordCloudApiResponse from "./vo/GeneratedWordCloudApiResponse";
 import {Container, Dialog, Divider} from "@mui/material";
-import {HelpOutline} from "@mui/icons-material";
+import {GitHub, HelpOutline, Twitter} from "@mui/icons-material";
 
 require("./tagdrawer.css")
 
@@ -90,7 +90,7 @@ export default function TagDrawer(props: Props) {
         if (ignore)
             return;
 
-        GetWordCloud("http://192.168.100.4:8080", data => {
+        GetWordCloud(window ? window().location.origin : "http://localhost:8080", data => {
             setSvgSize(new SvgSize(data.height, data.width));
             setTags(data);
             const time = new Date(Date.parse(data.time));
@@ -113,7 +113,7 @@ export default function TagDrawer(props: Props) {
             <Divider/>
             <List>
                 {tags.data.map(data => (
-                    <ListItem disablePadding>
+                    <ListItem disablePadding key={data.t}>
                         <ListItemButton onClick={() => openTagPage(tags.hostname, data.t)}>
                             <Box>
                                 <Typography variant={"h6"}>
@@ -138,13 +138,22 @@ export default function TagDrawer(props: Props) {
             <Dialog open={helpOpen} onClose={() => setHelpOpen(false)}>
                 <Box padding={"1rem"}>
                     <Container>
-                        <Typography variant="h5" component="div" paddingBottom={"0.5em"}>
-                            Otadon Federated Hashtag Cloud
-                        </Typography>
+                        <img src={"banner.png"} style={{width: "100%"}} alt={"Otadon Hashtag Cloud"}/>
                         <Typography variant="body1" component="div">
                             連合タイムラインで言及されたハッシュタグをワードクラウドで表示します。<br/>
                             集計は5分毎に行われ、直近24時間に対象のハッシュタグを言及したアカウント数がカウントされます。<br/>
-                            ハッシュタグをクリックすると投稿を確認できます。
+                            ハッシュタグをクリックすると投稿を確認できます。<br/>
+                            <br/>
+                            お問い合わせやご要望はこちらへ<br/>
+                            <IconButton href={"https://otadon.com/@N0n5ense"}>
+                                <img height={"24px"} width={"24px"} src={"mastodon-logo.svg"} alt={"mastodon icon"}/>
+                            </IconButton>
+                            <IconButton href={"https://twitter.com/N0n5ense"}>
+                                <Twitter/>
+                            </IconButton>
+                            <IconButton href={"https://github.com/Non-Sense/FederatedHashtagCloud"}>
+                                <GitHub/>
+                            </IconButton>
                         </Typography>
                     </Container>
                 </Box>
@@ -166,9 +175,8 @@ export default function TagDrawer(props: Props) {
                     >
                         <MenuIcon/>
                     </IconButton>
-                    <Typography variant="h6" noWrap component="div">
-                        Otadon Federated Hashtag Cloud(TODO: Logo)
-                    </Typography>
+                    <img src={"banner_white.png"} style={{height: appBarHeight, padding: "10px"}}
+                         alt={"Otadon Hashtag Cloud"}/>
                     <Box sx={{flexGrow: 1}}/>
                     <IconButton onClick={() => setHelpOpen(true)} aria-label={"open help"}>
                         <HelpOutline/>
@@ -222,7 +230,6 @@ export default function TagDrawer(props: Props) {
                         if (event instanceof MouseEvent) {
                             if (window) {
                                 draggingResetId = window().setTimeout(() => {
-                                    console.log("reset");
                                     isDragging = false;
                                     draggingResetId = null;
                                 }, 100);

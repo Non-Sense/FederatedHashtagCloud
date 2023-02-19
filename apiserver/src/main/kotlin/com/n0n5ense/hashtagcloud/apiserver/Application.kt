@@ -23,7 +23,7 @@ class CallHandler {
     }
 }
 
-fun startServer(port: Int, database: HashTagDatabase, instanceDomain: String): CallHandler {
+fun startServer(port: Int, database: HashTagDatabase, instanceDomain: String, reactPath: String): CallHandler {
     embeddedServer(
         Netty,
         port = port
@@ -43,7 +43,7 @@ fun startServer(port: Int, database: HashTagDatabase, instanceDomain: String): C
             )
         }
         install(Routing)
-        configureRouting(instanceDomain)
+        configureRouting(instanceDomain, reactPath)
 
     }.start(wait = false)
     return CallHandler()

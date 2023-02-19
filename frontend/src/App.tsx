@@ -27,6 +27,7 @@ function App() {
                 styleOverrides: `
             ::-webkit-scrollbar{
                 width: 0.35em;
+                height: 0.35em;
             },
             ::-webkit-scrollbar-thumb {
                 background-color: #4ebeff80;

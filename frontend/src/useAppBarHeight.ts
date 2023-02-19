@@ -23,6 +23,6 @@ export default function useAppBarHeight(): number {
     }
     let tmp = (currentToolbarMinHeight as MinHeight)
     if(tmp === undefined)
-        return 0;
+        return 48;
     return tmp.minHeight;
 }

@@ -9,5 +9,8 @@ data class Config(
     val generatedJsonFile: String,
     val targetHostName: String,
     val postgresUri: String,
+    val postgresUserName: String,
+    val postgresPassword: String,
     val apiServerPort: Int,
+    val reactPath: String
 )

@@ -1,6 +1,8 @@
 plugins {
     kotlin("jvm") version "1.7.10"
     kotlin("plugin.serialization") version("1.6.21")
+    id("com.github.johnrengelman.shadow") version "7.1.0"
+    application
 }
 
 group = "con.n0n5ense"
@@ -26,4 +28,15 @@ dependencies {
     implementation("com.charleskorn.kaml:kaml:0.49.0")
 
     api("ch.qos.logback:logback-classic:1.2.8")
+}
+
+application {
+    mainClassName = "com.n0n5ense.hashtagcloud.MainKt"
+}
+
+val jar by tasks.getting(Jar::class) {
+    manifest {
+        attributes["Main-Class"] = "com.n0n5ense.hashtagcloud.MainKt"
+        attributes["Multi-Release"] = true
+    }
 }

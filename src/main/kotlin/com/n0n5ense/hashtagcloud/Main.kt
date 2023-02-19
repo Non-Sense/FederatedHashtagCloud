@@ -18,6 +18,7 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
 
     val service = Executors.newSingleThreadScheduledExecutor()
+    val service2 = Executors.newSingleThreadScheduledExecutor()
 
     val logger = LoggerFactory.getLogger("com.n0n5ense.hashtagcloud.MainKt")
     val commandLineArgs = CommandLineArgs.parse(args)
@@ -28,7 +29,7 @@ fun main(args: Array<String>) {
         .useStreamingApi()
         .build()
 
-    val database = HashTagDatabase.connect(config.postgresUri, "postgres", "postgrespw")
+    val database = HashTagDatabase.connect(config.postgresUri, config.postgresUserName, config.postgresPassword)
     val datasource = HashTagDataSource(database)
     database.init()
 
@@ -38,14 +39,14 @@ fun main(args: Array<String>) {
         datasource.addAll(it)
     }
 
-    val handler = startServer(config.apiServerPort, database, config.targetHostName)
+    val handler = startServer(config.apiServerPort, database, config.targetHostName, config.reactPath)
 
     val wordCloudGenerator = WordCloudGenerator(config)
 
 
     service.scheduleAtFixedRate({
         runCatching {
-            datasource.tc(Instant.now().minusSeconds(86400),150)
+            datasource.aggregateWithExclude(Instant.now().minusSeconds(86400),250)
         }.onFailure {
             logger.error(it.stackTraceToString())
         }.onSuccess {
@@ -56,21 +57,19 @@ fun main(args: Array<String>) {
             handler.onGenerate(config.generatedJsonFile)
     }, 0, config.generateIntervalSec, TimeUnit.SECONDS)
 
+    service2.scheduleAtFixedRate({
+        runCatching {
+            val lines = datasource.deleteWhere(Instant.now().minusSeconds(86400*3))
+            logger.info("$lines rows deleted")
+        }
+    }, 0, 24, TimeUnit.HOURS)
+
     streamer.start()
 
     while(true) {
         val input = readLine()
         if(input?.startsWith("exit") == true)
             break
-        if(input?.startsWith("s") == true){
-            println("accept")
-            datasource.tc(Instant.now().minusSeconds(600000),30).map { println(it) }
-        }
-        if(input?.startsWith("d") == true){
-            println("accept")
-            datasource.aggregateWithExclude(Instant.now().minusSeconds(600000), 30).map { println(it) }
-        }
-
     }
 
     exitProcess(0)

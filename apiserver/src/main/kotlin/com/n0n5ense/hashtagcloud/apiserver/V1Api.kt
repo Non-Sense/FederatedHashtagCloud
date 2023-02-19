@@ -43,7 +43,6 @@ private fun Route.excludeApi() {
             return@post
         }
         if (datasource.add(excludeTag.name)) {
-            HashTagApiData.update()
             call.respond(HttpStatusCode.OK)
         } else {
             call.respond(HttpStatusCode.Conflict)
@@ -55,7 +54,6 @@ private fun Route.excludeApi() {
             return@delete
         }
         if (datasource.remove(excludeTag.name)) {
-            HashTagApiData.update()
             call.respond(HttpStatusCode.OK)
         } else {
             call.respond(HttpStatusCode.NotFound)
