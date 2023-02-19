@@ -31,7 +31,7 @@ dependencies {
 }
 
 application {
-    mainClassName = "com.n0n5ense.hashtagcloud.MainKt"
+    mainClass.value("com.n0n5ense.hashtagcloud.MainKt")
 }
 
 val jar by tasks.getting(Jar::class) {
