@@ -66,9 +66,22 @@ def svg_string_to_json(svg, dat):
 
 def main(font, url, output):
     start = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    hostname, dat = get_tag_data(url)
     height = 1500
     width = 1500
+
+    hostname, dat = get_tag_data(url)
+    if len(dat) == 0:
+        js = {
+            "time": start,
+            "hostname": hostname,
+            "width": width,
+            "height": height,
+            "data": []
+        }
+        with open(output, "w", encoding="UTF-8") as f:
+                f.write(json.dumps(js, ensure_ascii=False))
+        exit(0)
+
     svg = make_wordcloud_svg(dat, height, width, font)
     
     svg_json = svg_string_to_json(svg.splitlines(), dat)
