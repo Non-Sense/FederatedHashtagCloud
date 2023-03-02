@@ -33,7 +33,7 @@ fun main(args: Array<String>) {
     val datasource = HashTagDataSource(database)
     database.init()
 
-    val streamer = Streamer(client) {
+    val streamer = Streamer(client, config.ignoreBot, config.targetHostName) {
         if(logger.isInfoEnabled)
             logger.info("got: ${it.joinToString { t -> t.name }}")
         datasource.addAll(it)
@@ -46,7 +46,7 @@ fun main(args: Array<String>) {
 
     service.scheduleAtFixedRate({
         runCatching {
-            datasource.aggregateWithExclude(Instant.now().minusSeconds(86400),250)
+            datasource.aggregateWithExclude(Instant.now().minusSeconds(config.aggregateRangeSec),250)
         }.onFailure {
             logger.error(it.stackTraceToString())
         }.onSuccess {
@@ -59,10 +59,10 @@ fun main(args: Array<String>) {
 
     service2.scheduleAtFixedRate({
         runCatching {
-            val lines = datasource.deleteWhere(Instant.now().minusSeconds(86400*3))
+            val lines = datasource.deleteWhere(Instant.now().minusSeconds(config.deleteBeforeSec))
             logger.info("$lines rows deleted")
         }
-    }, 0, 24, TimeUnit.HOURS)
+    }, 0, config.deletePeriodSec, TimeUnit.SECONDS)
 
     streamer.start()
 

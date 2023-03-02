@@ -12,5 +12,9 @@ data class Config(
     val postgresUserName: String,
     val postgresPassword: String,
     val apiServerPort: Int,
-    val reactPath: String
+    val reactPath: String,
+    val ignoreBot: Boolean = true,
+    val aggregateRangeSec: Long,
+    val deleteBeforeSec: Long,
+    val deletePeriodSec: Long,
 )

@@ -27,7 +27,9 @@ class HashTagDatabase private constructor(internal val database: Database){
         transaction(database) {
             SchemaUtils.create(
                 HashTagTable,
-                ExcludeTagTable
+                ExcludeTagTable,
+                ExcludeUserTable,
+                ExcludeDomainTable
             )
         }
     }
@@ -36,10 +38,21 @@ class HashTagDatabase private constructor(internal val database: Database){
 internal object HashTagTable : LongIdTable() {
     val tagName = text("tag_name")
     val userId = long("user_id")
+    val userName = text("user_name")
+    val domain = text("domain")
     val createdAt = timestamp("created_at")
 }
 
 internal object ExcludeTagTable : LongIdTable() {
     val tagName = text("tag_name").uniqueIndex()
     val createdAt = timestamp("created_at").default(Instant.now())
+}
+
+internal object ExcludeUserTable : LongIdTable() {
+    val userName = text("user_name").index()
+    val domain = text("domain").index()
+}
+
+internal object ExcludeDomainTable : LongIdTable() {
+    val domain = text("domain").index()
 }

@@ -1,8 +1,10 @@
 package com.n0n5ense.hashtagcloud.apiserver
 
 import com.n0n5ense.hashtagcloud.common.ExcludeTag
+import com.n0n5ense.hashtagcloud.common.ExcludeUser
 import com.n0n5ense.hashtagcloud.common.HashTags
 import com.n0n5ense.hashtagcloud.database.datasource.ExcludeTagDataSource
+import com.n0n5ense.hashtagcloud.database.datasource.ExcludeUserDataSource
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -33,6 +35,7 @@ internal fun Route.v1Api(instanceDomain: String) {
 
 private fun Route.excludeApi() {
     val datasource: ExcludeTagDataSource by inject()
+    val excludeUserDataSource: ExcludeUserDataSource by inject()
 
     get {
         call.respond(HttpStatusCode.OK, datasource.getAll())
@@ -58,5 +61,37 @@ private fun Route.excludeApi() {
         } else {
             call.respond(HttpStatusCode.NotFound)
         }
+    }
+
+    route("/user") {
+        get {
+            call.respond(HttpStatusCode.OK, excludeUserDataSource.getAll())
+        }
+        post {
+            val excludeUser = call.getPostData<ExcludeUser>().getOrElse {
+                call.respond(HttpStatusCode.BadRequest, it.message ?: "")
+                return@post
+            }
+            if(excludeUserDataSource.add(excludeUser)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.Conflict)
+            }
+        }
+        delete {
+            val excludeUser = call.getPostData<ExcludeUser>().getOrElse {
+                call.respond(HttpStatusCode.BadRequest, it.message ?: "")
+                return@delete
+            }
+            if(excludeUserDataSource.remove(excludeUser)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
+    }
+
+    route("/domain") {
+
     }
 }

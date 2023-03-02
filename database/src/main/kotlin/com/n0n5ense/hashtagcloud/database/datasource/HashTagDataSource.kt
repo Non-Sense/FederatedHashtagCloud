@@ -2,8 +2,9 @@ package com.n0n5ense.hashtagcloud.database.datasource
 
 import com.n0n5ense.hashtagcloud.common.AggregatedTagData
 import com.n0n5ense.hashtagcloud.common.TagData
+import com.n0n5ense.hashtagcloud.database.*
 import com.n0n5ense.hashtagcloud.database.ExcludeTagTable
-import com.n0n5ense.hashtagcloud.database.HashTagDatabase
+import com.n0n5ense.hashtagcloud.database.ExcludeUserTable
 import com.n0n5ense.hashtagcloud.database.HashTagTable
 import com.n0n5ense.hashtagcloud.database.deleteWhere
 import org.jetbrains.exposed.sql.*
@@ -17,13 +18,17 @@ class HashTagDataSource(
 ) {
 
     companion object {
-        private val aggregateQuery =
-            "SELECT ${HashTagTable.tagName.name}, COUNT(${HashTagTable.tagName.name}) AS name_count, MAX(time_max) AS time_max2 FROM " +
-                    "(SELECT ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}, MAX(${HashTagTable.createdAt.name}) AS time_max " +
-                    "FROM ${HashTagTable.tableName} WHERE ${HashTagTable.createdAt.name} > cast( ? as timestamp ) GROUP BY ${HashTagTable.tagName.name}, ${HashTagTable.userId.name}) AS t " +
-                    "GROUP BY ${HashTagTable.tagName.name} " +
-                    "HAVING NOT EXISTS(SELECT ${ExcludeTagTable.tagName.name} FROM ${ExcludeTagTable.tableName} WHERE ${ExcludeTagTable.tagName.name} = t.${HashTagTable.tagName.name}) " +
-                    "ORDER BY name_count DESC, time_max2 DESC LIMIT ?"
+        private const val aggregateQuery = """SELECT tag_name, count(*) as count, max(tmax) as latest FROM (
+SELECT d2.tag_name, d2.user_id, max(d2.created_at) as tmax FROM (
+SELECT tag_name, user_id, user_name, t1.domain, created_at FROM (
+SELECT tag_name, user_id, user_name, domain, created_at
+FROM hashtag WHERE created_at > cast(? as timestamp)) AS t1
+LEFT JOIN (SELECT domain from excludedomain) AS d
+ON d.domain = t1.domain WHERE d.domain is null) as d2
+LEFT JOIN (SELECT user_name, domain FROM excludeuser) AS u
+ON u.domain = d2.domain AND u.user_name = d2.user_name WHERE u.user_name is null
+GROUP BY tag_name, user_id) AS t2
+GROUP BY tag_name ORDER BY count DESC, latest DESC LIMIT ?;"""
 
         private val sqlDatetimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
     }
@@ -46,6 +51,8 @@ class HashTagDataSource(
                 this[HashTagTable.tagName] = it.name
                 this[HashTagTable.userId] = it.userId
                 this[HashTagTable.createdAt] = it.createdAt
+                this[HashTagTable.userName] = it.userName
+                this[HashTagTable.domain] = it.domain
             }
         }
     }
@@ -96,7 +103,15 @@ class HashTagDataSource(
     fun getAll(): List<TagData> {
         return transaction(db) {
             HashTagTable.selectAll()
-                .map { TagData(it[HashTagTable.tagName], it[HashTagTable.userId], it[HashTagTable.createdAt]) }
+                .map {
+                    TagData(
+                        it[HashTagTable.tagName],
+                        it[HashTagTable.userId],
+                        it[HashTagTable.createdAt],
+                        it[HashTagTable.userName],
+                        it[HashTagTable.domain]
+                    )
+                }
         }
     }
 

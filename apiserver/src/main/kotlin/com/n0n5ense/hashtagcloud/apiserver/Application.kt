@@ -3,6 +3,7 @@ package com.n0n5ense.hashtagcloud.apiserver
 import com.n0n5ense.hashtagcloud.common.AggregatedTagData
 import com.n0n5ense.hashtagcloud.database.HashTagDatabase
 import com.n0n5ense.hashtagcloud.database.datasource.ExcludeTagDataSource
+import com.n0n5ense.hashtagcloud.database.datasource.ExcludeUserDataSource
 import com.n0n5ense.hashtagcloud.database.datasource.HashTagDataSource
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -39,6 +40,7 @@ fun startServer(port: Int, database: HashTagDatabase, instanceDomain: String, re
                 module {
                     single { ExcludeTagDataSource(database) }
                     single { HashTagDataSource(database) }
+                    single { ExcludeUserDataSource(database) }
                 }
             )
         }
