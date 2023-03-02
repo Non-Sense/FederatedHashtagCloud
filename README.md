@@ -28,6 +28,10 @@ postgresUserName: "postgres"  # postgresのユーザ名
 postgresPassword: "postgrespw"  # postgresのパスワード
 apiServerPort: 80   # API,Webのサーバーポート
 reactPath: "/some/directory/build"  # Webファイルのルートパス
+ignoreBot: true # ボットフラグがついている投稿を無視するか
+aggregateRangeSec: 86400  # 集計する期間(秒)
+deleteBeforeSec: 259200 # この時間より前に投稿されたハッシュタグは消去処理で消える(秒)
+deletePeriodSec: 86400  # 消去処理を実行する周期(秒)
 ```
 
 ### エンドポイント  
@@ -35,16 +39,39 @@ reactPath: "/some/directory/build"  # Webファイルのルートパス
   - Webフロント
 - [GET] /api/v1/tags
   - ハッシュタグの集計結果
-- [GET] /api/v1/exclude
-  - 集計から除外するハッシュタグの一覧
-- [POST, DELETE] /api/v1/exclude
-  - 集計から除外するハッシュタグの登録、削除
 - [GET] /api/v1/generated
   - 生成されたワードクラウド
+- /api/v1/exclude
+  - [GET, POST, DELETE] /api/v1/exclude/tags
+    - 集計から除外するハッシュタグ
+  - [GET, POST, DELETE] /api/v1/exclude/domain
+    - 集計から除外するドメインの登録、削除
+  - [GET, POST, DELETE] /api/v1/exclude/user
+    - 集計から除外するユーザーの登録、削除
 
+exclude以下のPOST, DELETEリクエストはリストではなく単一値を渡してください。  
+GETリクエストはリストが返ります。
+#### POST, DELETEするときの型
+- /api/v1/exclude/tags:
+```json
+{ "name":"string" }
+```
+- /api/v1/exclude/domain:
+```json
+{ "domain":"string" }
+```
+- /api/v1/exclude/user:
+```json
+{ 
+  "name":"string", 
+  "domain":"string"
+}
+```
+
+### エンドポイントの公開範囲の注意
 外部へ公開するエンドポイントは少なくとも`/`,`/api/v1/generated`のみです。  
 `/api/v1/tags`は、通常ではワードクラウドの生成のみに使用するため公開は不要です。  
-`/api/v1/exclude`は生成されるワードクラウドに影響を与えるため、管理者以外には公開するべきではありません。
+`/api/v1/exclude/*`は生成されるワードクラウドに影響を与えるため、管理者以外には公開するべきではありません。
 
 ### Pythonスクリプト
 `/api/v1/tags`の結果をもとに`/api/v1/generated`で返すJsonを生成します。  
