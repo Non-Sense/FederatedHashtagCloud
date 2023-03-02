@@ -141,7 +141,7 @@ export default function TagDrawer(props: Props) {
                         <img src={"banner.png"} style={{width: "100%"}} alt={"Otadon Hashtag Cloud"}/>
                         <Typography variant="body1" component="div">
                             連合タイムラインで言及されたハッシュタグをワードクラウドで表示します。<br/>
-                            集計は5分毎に行われ、直近24時間に対象のハッシュタグを言及したアカウント数がカウントされます。<br/>
+                            定期的に集計され、期間内に対象のハッシュタグを言及したアカウント数がカウントされます。<br/>
                             ハッシュタグをクリックすると投稿を確認できます。<br/>
                             <br/>
                             お問い合わせやご要望はこちらへ<br/>
