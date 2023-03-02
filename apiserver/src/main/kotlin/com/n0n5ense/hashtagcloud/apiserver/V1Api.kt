@@ -1,8 +1,10 @@
 package com.n0n5ense.hashtagcloud.apiserver
 
+import com.n0n5ense.hashtagcloud.common.ExcludeDomain
 import com.n0n5ense.hashtagcloud.common.ExcludeTag
 import com.n0n5ense.hashtagcloud.common.ExcludeUser
 import com.n0n5ense.hashtagcloud.common.HashTags
+import com.n0n5ense.hashtagcloud.database.datasource.ExcludeDomainDataSource
 import com.n0n5ense.hashtagcloud.database.datasource.ExcludeTagDataSource
 import com.n0n5ense.hashtagcloud.database.datasource.ExcludeUserDataSource
 import io.ktor.http.*
@@ -18,9 +20,10 @@ internal fun Route.v1Api(instanceDomain: String) {
             call.response.headers.append(HttpHeaders.AccessControlAllowOrigin, "*")
             call.respond(HttpStatusCode.OK, HashTags(instanceDomain, HashTagApiData.data))
         }
-        route("/exclude") {
-            excludeApi()
-        }
+    }
+
+    route("/exclude") {
+        excludeApi()
     }
 
     route("/generated") {
@@ -36,30 +39,33 @@ internal fun Route.v1Api(instanceDomain: String) {
 private fun Route.excludeApi() {
     val datasource: ExcludeTagDataSource by inject()
     val excludeUserDataSource: ExcludeUserDataSource by inject()
+    val excludeDomainDataSource: ExcludeDomainDataSource by inject()
 
-    get {
-        call.respond(HttpStatusCode.OK, datasource.getAll())
-    }
-    post {
-        val excludeTag = call.getPostData<ExcludeTag>().getOrElse {
-            call.respond(HttpStatusCode.BadRequest, it.message ?: "")
-            return@post
+    route("/tags") {
+        get {
+            call.respond(HttpStatusCode.OK, datasource.getAll())
         }
-        if (datasource.add(excludeTag.name)) {
-            call.respond(HttpStatusCode.OK)
-        } else {
-            call.respond(HttpStatusCode.Conflict)
+        post {
+            val excludeTag = call.getPostData<ExcludeTag>().getOrElse {
+                call.respond(HttpStatusCode.BadRequest, it.message ?: "")
+                return@post
+            }
+            if (datasource.add(excludeTag.name)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.Conflict)
+            }
         }
-    }
-    delete {
-        val excludeTag = call.getPostData<ExcludeTag>().getOrElse {
-            call.respond(HttpStatusCode.BadRequest, it.message ?: "")
-            return@delete
-        }
-        if (datasource.remove(excludeTag.name)) {
-            call.respond(HttpStatusCode.OK)
-        } else {
-            call.respond(HttpStatusCode.NotFound)
+        delete {
+            val excludeTag = call.getPostData<ExcludeTag>().getOrElse {
+                call.respond(HttpStatusCode.BadRequest, it.message ?: "")
+                return@delete
+            }
+            if (datasource.remove(excludeTag.name)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         }
     }
 
@@ -72,7 +78,7 @@ private fun Route.excludeApi() {
                 call.respond(HttpStatusCode.BadRequest, it.message ?: "")
                 return@post
             }
-            if(excludeUserDataSource.add(excludeUser)) {
+            if (excludeUserDataSource.add(excludeUser)) {
                 call.respond(HttpStatusCode.OK)
             } else {
                 call.respond(HttpStatusCode.Conflict)
@@ -83,7 +89,7 @@ private fun Route.excludeApi() {
                 call.respond(HttpStatusCode.BadRequest, it.message ?: "")
                 return@delete
             }
-            if(excludeUserDataSource.remove(excludeUser)) {
+            if (excludeUserDataSource.remove(excludeUser)) {
                 call.respond(HttpStatusCode.OK)
             } else {
                 call.respond(HttpStatusCode.NotFound)
@@ -92,6 +98,30 @@ private fun Route.excludeApi() {
     }
 
     route("/domain") {
-
+        get {
+            call.respond(HttpStatusCode.OK, excludeDomainDataSource.getAll())
+        }
+        post {
+            val excludeDomain = call.getPostData<ExcludeDomain>().getOrElse {
+                call.respond(HttpStatusCode.BadRequest, it.message ?: "")
+                return@post
+            }
+            if (excludeDomainDataSource.add(excludeDomain)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.Conflict)
+            }
+        }
+        delete {
+            val excludeDomain = call.getPostData<ExcludeDomain>().getOrElse {
+                call.respond(HttpStatusCode.BadRequest, it.message ?: "")
+                return@delete
+            }
+            if (excludeDomainDataSource.remove(excludeDomain)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
     }
 }
