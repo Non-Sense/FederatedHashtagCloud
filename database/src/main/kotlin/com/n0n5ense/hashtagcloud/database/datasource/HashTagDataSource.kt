@@ -19,15 +19,21 @@ class HashTagDataSource(
 
     companion object {
         private const val aggregateQuery = """SELECT tag_name, count(*) as count, max(tmax) as latest FROM (
-SELECT d2.tag_name, d2.user_id, max(d2.created_at) as tmax FROM (
-SELECT tag_name, user_id, user_name, t1.domain, created_at FROM (
-SELECT tag_name, user_id, user_name, domain, created_at
-FROM hashtag WHERE created_at > cast(? as timestamp)) AS t1
-LEFT JOIN (SELECT domain from excludedomain) AS d
-ON d.domain = t1.domain WHERE d.domain is null) as d2
-LEFT JOIN (SELECT user_name, domain FROM excludeuser) AS u
-ON u.domain = d2.domain AND u.user_name = d2.user_name WHERE u.user_name is null
-GROUP BY tag_name, user_id) AS t2
+    SELECT d2.tag_name, d2.user_id, max(d2.created_at) as tmax FROM (
+        SELECT tag_name, user_id, user_name, t1.domain, created_at FROM (
+            SELECT t0.tag_name, t0.user_id, t0.user_name, t0.domain, t0.created_at
+            FROM (
+                 SELECT tag_name, user_id, user_name, domain, created_at
+                 FROM hashtag
+                 WHERE created_at > cast(? as timestamp)
+            ) AS t0
+            LEFT JOIN (SELECT tag_name from excludetag) AS ex ON ex.tag_name = t0.tag_name WHERE ex.tag_name is null
+        ) as t1
+        LEFT JOIN (SELECT domain from excludedomain) AS d ON d.domain = t1.domain WHERE d.domain is null
+    ) as d2
+    LEFT JOIN (SELECT user_name, domain FROM excludeuser) AS u ON u.domain = d2.domain AND u.user_name = d2.user_name WHERE u.user_name is null
+    GROUP BY tag_name, user_id
+) AS t2
 GROUP BY tag_name ORDER BY count DESC, latest DESC LIMIT ?;"""
 
         private val sqlDatetimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
