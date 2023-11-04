@@ -32,6 +32,7 @@ ignoreBot: true # ボットフラグがついている投稿を無視するか
 aggregateRangeSec: 86400  # 集計する期間(秒)
 deleteBeforeSec: 259200 # この時間より前に投稿されたハッシュタグは消去処理で消える(秒)
 deletePeriodSec: 86400  # 消去処理を実行する周期(秒)
+accessToken: "mastodonAccessToken" # read:statuses権限がついたアクセストークン
 ```
 
 ### エンドポイント  
