@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "con.n0n5ense"
-version = "1.1patch1"
+version = "1.1patch3"
 
 repositories {
     mavenCentral()

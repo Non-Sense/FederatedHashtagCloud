@@ -17,4 +17,5 @@ data class Config(
     val aggregateRangeSec: Long,
     val deleteBeforeSec: Long,
     val deletePeriodSec: Long,
+    val accessToken: String,
 )

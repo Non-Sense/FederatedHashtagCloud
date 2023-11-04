@@ -51,8 +51,10 @@ class Streamer(
 
     private suspend fun federatedPublic(client: MastodonClient, handler: (Status) -> Unit) {
         val response = runCatching { client.get("streaming/public") }.getOrNull()
-        if(response?.isSuccessful != true)
+        if(response?.isSuccessful != true) {
+            logger.error("HTTP error code: ${response?.code()}")
             return
+        }
 
         val reader = response.body().byteStream().bufferedReader()
 

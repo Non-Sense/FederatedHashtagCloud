@@ -26,6 +26,7 @@ fun main(args: Array<String>) {
     val config = Yaml.default.decodeFromStream(Config.serializer(), Path(commandLineArgs.configFile).toFile().inputStream())
 
     val client = MastodonClient.Builder(config.targetHostName, OkHttpClient.Builder(), Gson())
+        .accessToken(config.accessToken)
         .useStreamingApi()
         .build()
 
